@@ -48,7 +48,7 @@ public class SampleChatServer {
                     Client mClient = new Client();
                     String line = null;
                     while ((line = reader.readLine()) != null) {
-                        if (line.toLowerCase().contains("login")) {
+                        if (line.toLowerCase().contains("login||")) {
                             System.out.println("Client login: " + line);
                             String login = line.split("\\|\\|")[1];
                             mClient.setLogin(login);
@@ -105,18 +105,21 @@ public class SampleChatServer {
             String line = null;
             while ((line = br.readLine()) != null) {
                 outputLog("From " + mClient.getLogin() + ": " + line);
-                if (line.toLowerCase().contains("to::")) {
+                if (line.toLowerCase().startsWith("to::")) {
                     String[] msg = line.split("\\:\\:");
                     outputLog("This messages is for: " + msg[1]);
                     outputLog("Message: " + msg[2]);
                     if (!sendPrivateMessage(mClient.getLogin(), msg[1], msg[2])) {
                         bw.write("Server: user " + msg[1] + " is not found.\r\n");
                     }
-                } else {
+                } else if (line.toLowerCase().startsWith("pm:")) {
+                    bw.write(line);
+                } else if (!line.toLowerCase().startsWith("to::")) {
                     broadcastMessage(mClient.getLogin(), line);
+                } else {
+                    bw.write(mClient.getLogin() + ": " + line + "\r\n");
+                    bw.flush();
                 }
-                bw.write(mClient.getLogin() + ": " + line + "\r\n");
-                bw.flush();
             }
         }
         clientList.remove(mClient);
@@ -153,7 +156,7 @@ public class SampleChatServer {
                 try {
                     privateMessageWriter = new BufferedWriter(
                             new OutputStreamWriter(client.getConnection().getOutputStream()));
-                    privateMessageWriter.write(from + ": " + message + "\r\n");
+                    privateMessageWriter.write("PM:" + from + ": " + message + "\r\n");
                     privateMessageWriter.flush();
                 } catch (IOException ex) {
                     outputLog("Error: " + ex.getMessage());
